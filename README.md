@@ -19,8 +19,9 @@ Using Vue Native to develope our mobile APP and fetching backend API to show the
 Using Python Flask to develop API controller and connecting with database. Fureture more, call out FCM sever to make notification to APP when disaster happend.
 
 ## Simple structure of the project
+![系統架構圖](https://github.com/user-attachments/assets/22eb1df5-d03a-4cf6-aefe-dd514b7e5813)
 
-![系統架構圖](https://github.com/user-attachments/assets/2b9e814f-2677-4aab-acaf-11edbcee4524)
+
 
 
   
