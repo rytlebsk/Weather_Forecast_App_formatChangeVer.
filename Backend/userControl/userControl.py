@@ -67,6 +67,10 @@ def login():
     data = request.get_json()
     userAccount = data.get('userAccount')
     password = data.get('password')
+    if userAccount == None or password == None:
+        dt = UserDataResult("-1","","","Index Error. Please Follow Documentaion Instructions")
+        response = make_response(jsonify(dt.to_dict()),404)
+        return response
     cursor.execute("SELECT * FROM users WHERE account =? and password =?",(userAccount,password))
     user = cursor.fetchall()
     if len(user) == 0:
@@ -85,6 +89,12 @@ def login():
 def register():
     if request.method == 'GET':
         id = request.args.get('ID')
+        if id == None:
+            id = request.args.get('id')
+        if id == None:
+            dt = UserDataResult("-1","","","Index Error. Please Follow Documentaion Instructions")
+            response = make_response(jsonify(dt.to_dict()),404)
+            return response           
         cursor.execute("Select * from users where id =?",[id])
         user = cursor.fetchall()
         if len(user) < 1:
@@ -104,12 +114,16 @@ def register():
         data = request.get_json()
         userAccount = data.get('userAccount')
         password = data.get('password')
+        if userAccount == None or password == None:
+            dt = UserDataResult("-1","","","Index Error. Please Follow Documentaion Instructions")
+            response = make_response(jsonify(dt.to_dict()),404)
+            return response
         cursor.execute("SELECT * FROM users WHERE account =?",[userAccount])
         user = cursor.fetchall()
         if len(user) > 0:
             dt = UserDataResult("-1","","","Account have been used")
             response = make_response(jsonify(dt.to_dict()),404)
-            return jsonify(404)
+            return response
         cursor.execute("INSERT INTO users(account,password,deleted) VALUES(?,?,?)",(userAccount,password,0))
         conn.commit()
         cursor.execute("SELECT * FROM users WHERE account =? and password =?",(userAccount,password))
@@ -117,7 +131,7 @@ def register():
         if(len(user) != 0):
             dt = UserDataResult(user[0][0],user[0][1],user[0][2],"Register Successful")
             response = make_response(jsonify(dt.to_dict()),201)
-            return jsonify(response)
+            return response
         else:
             dt = UserDataResult("-1","","","Register Error")
             return jsonify(dt.to_dict())
@@ -129,6 +143,12 @@ def register():
         '''
         data = request.get_json()
         id = data.get('userID')
+        if id == None:
+            result = {
+                "status" : "Index Error. Please Follow Documentaion Instructions"
+            }
+            response = make_response(jsonify(result),404)
+            return response
         cursor.execute("UPDATE users SET deleted = 1 where id =?",[id])
         conn.commit()
         result ={
@@ -141,6 +161,12 @@ def register():
 def habits():
     if request.method == "GET":
         id = request.args.get('ID')
+        if id == None:
+            id = request.args.get('id')
+        if id == None:
+            dt = Habit("-1","Index Error. Please Follow Documentaion Instructions")
+            response = make_response(jsonify(dt.to_dict()),404)
+            return response  
         cursor.execute("Select * from users where id =?",[id])
         counter = cursor.fetchall()
         habits = []
@@ -170,6 +196,12 @@ def habits():
         data = request.get_json();
         userID = data.get('userID')
         habbitIdList = data.get('habitIDs')
+        if userID == None:
+            result = {
+            "Stats" : "Index Error. Please Follow Documentaion Instructions"
+            }
+            response = make_response(jsonify(result),404)
+            return response
         cursor.execute("DELETE From usersAndHabits where userID = ?",(userID))
         conn.commit()
         for i in habbitIdList:
@@ -187,6 +219,12 @@ def habits():
 def sports():
     if request.method == "GET":
         id = request.args.get('ID')
+        if id == None:
+            id = request.args.get('id')
+        if id == None:
+            dt = Sport("-1","Index Error. Please Follow Documentaion Instructions")
+            response = make_response(jsonify(dt.to_dict()),404)
+            return response  
         cursor.execute("Select * from users where id =?",[id])
         counter = cursor.fetchall()
         sports = []
@@ -215,6 +253,12 @@ def sports():
         '''
         data = request.get_json();
         userID = data.get('userID')
+        if userID == None:
+            result = {
+            "Stats" : "Index Error. Please Follow Documentaion Instructions"
+            }
+            response = make_response(jsonify(result),404)
+            return response
         sportIdList = data.get('sportIDs')
         cursor.execute("DELETE From usersAndSports where userID = ?",[userID])
         conn.commit()
@@ -233,6 +277,11 @@ def getDailySportsSuggestion():
     id = int(requestData.get('userID'))
     longtitude = float(requestData.get('longitude'))
     latitude = float(requestData.get('latitude'))
+    if id == None or longtitude == None or longtitude == None:
+        sport = Sport(-1,"Index Error. Please Follow Documentaion Instructions")
+        sports.append(sport.to_dict())
+        response = make_response(jsonify(sports),404)
+        return response
     cursor.execute("Select * from users where id =?",[id])
     counter = cursor.fetchall()
     sports = []
