@@ -28,15 +28,15 @@ def getTime(t): return (t - timedelta(minutes=90)).strftime("%Y-%m-%dT%H:%M:%S")
 # 匯入城市及精確度代號
 def city():
     citycode = None
-    with open('cityCode.json') as f:# 路徑需再修正
-        citycode = json.load(f)# 更改編碼
+    with open('cityCode.json') as f:
+        citycode = json.load(f)
     return citycode
 
 def url(ft,nowCity,nowdistrict,nowTime): 
     return f"https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-D0047-0{city()[nowCity+ft]}?Authorization=CWA-3D385D45-EFD5-4BD3-9677-9100AD39A4A2&locationName={nowdistrict}&elementName=T,Wx,RH,WS,WD,AT,MaxAT,MinAT,{'PoP6h'if ft=='3h'else'PoP12h'},WeatherDescription&sort=time&timeFrom={nowTime}"
 
-def get3hData(lon,lat):
-    loc = setLocate(lat,lon)# 引入地理編碼
+def get3hData(lon,lat,cusloc):
+    loc = cusloc if cusloc else setLocate(lat,lon)# 引入地理編碼
     offsetTime = getTime(datetime.now())# 修正時間
     weatherData = requests.get(url('3h',loc["city"],loc["district"],offsetTime)).json()["records"]["locations"][0]["location"][0]["weatherElement"]
     resultElement = []# 初始化陣列
@@ -65,8 +65,8 @@ def get3hData(lon,lat):
 
     return resultElement
 
-def get12hData(lon,lat):
-    loc = setLocate(lat,lon)# 引入地理編碼
+def get12hData(lon,lat,cusloc):
+    loc = cusloc if cusloc else setLocate(lat,lon)# 引入地理編碼
     offsetTime = getTime(datetime.now())# 修正時間
     weatherData = requests.get(url('12h',loc["city"],loc["district"],offsetTime)).json()["records"]["locations"][0]["location"][0]["weatherElement"]
     resultElement = []# 初始化陣列
