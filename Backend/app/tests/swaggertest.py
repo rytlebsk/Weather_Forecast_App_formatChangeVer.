@@ -1,7 +1,9 @@
 from flask import Flask, jsonify
 from flask_swagger_ui import get_swaggerui_blueprint
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)
 
 # Swagger UI 配置
 SWAGGER_URL = '/swagger'  # 将 Swagger UI 注册到根路径

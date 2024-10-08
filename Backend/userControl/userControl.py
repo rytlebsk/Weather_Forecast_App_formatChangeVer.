@@ -2,11 +2,13 @@ from flask import Blueprint,request,jsonify,make_response
 import sqlite3
 from .Models import UserDataResult,Habit,Sport,SportsSuggestion
 import dataHandler.weatherData
+from flask_cors import CORS
 import json
 
 userControl_blueprint = Blueprint('userControl_blueprint', __name__)
 DATABASE = 'data.sqlite'
 conn = sqlite3.connect(DATABASE,check_same_thread=False)
+CORS(userControl_blueprint)
 
 cursor = conn.cursor()
 
@@ -173,7 +175,7 @@ def habits():
         if len(counter) < 1:
             habit = Habit(-1,"Undefine User")
             habits.append(habit.to_dict())
-            response = make_response(jsonify(habits),200)
+            response = make_response(jsonify(habits),404)
             return response
         sql_query = """
         SELECT * FROM habits where habits.id in 

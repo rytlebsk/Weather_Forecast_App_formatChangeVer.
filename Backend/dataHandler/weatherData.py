@@ -71,7 +71,7 @@ def get12hData(lon,lat,cusloc):
     weatherData = requests.get(url('12h',loc["city"],loc["district"],offsetTime)).json()["records"]["locations"][0]["location"][0]["weatherElement"]
     resultElement = []# 初始化陣列
     dayOffset = 0 if datetime.strptime(weatherData[0]["time"][0]["startTime"],"%Y-%m-%d %H:%M:%S").hour < 18 else 1#調整數據為白天
-    if dayOffset : resultElement.append(get3hData(lon,lat)[0])
+    if dayOffset : resultElement.append(get3hData(lon,lat,cusloc)[0])
     lastRainRate = ""
     
     for time in range(0,len(weatherData[0]["time"])-dayOffset,2):
