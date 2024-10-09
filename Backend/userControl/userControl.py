@@ -204,7 +204,15 @@ def habits():
             }
             response = make_response(jsonify(result),404)
             return response
-        cursor.execute("DELETE From usersAndHabits where userID = ?",(userID))
+        cursor.execute("Select * from users where id =?",[userID])
+        counter = cursor.fetchall()
+        if len(counter) < 1:
+            result = {
+                "Stats" : "No user"
+            }
+            response = make_response(jsonify(result),404)
+            return response
+        cursor.execute("DELETE From usersAndHabits where userID = ?",[userID])
         conn.commit()
         for i in habbitIdList:
             cursor.execute("INSERT INTO usersAndHabits VALUES(?,?)",(userID,i))
@@ -258,6 +266,14 @@ def sports():
         if userID == None:
             result = {
             "Stats" : "Index Error. Please Follow Documentaion Instructions"
+            }
+            response = make_response(jsonify(result),404)
+            return response
+        cursor.execute("Select * from users where id =?",[userID])
+        counter = cursor.fetchall()
+        if len(counter) < 1:
+            result = {
+                "Stats" : "No user"
             }
             response = make_response(jsonify(result),404)
             return response
