@@ -1,6 +1,6 @@
 from flask import Blueprint,request,jsonify,make_response
 import sqlite3
-from .Models import UserDataResult,Habit,Sport,SportsSuggestion
+from .Models import UserDataResult,Habit,Sport,SportsSuggestion,HabitsSuggestion,DailySuggestion
 import dataHandler.weatherData
 from flask_cors import CORS
 import json
@@ -9,54 +9,14 @@ userControl_blueprint = Blueprint('userControl_blueprint', __name__)
 DATABASE = 'data.sqlite'
 conn = sqlite3.connect(DATABASE,check_same_thread=False)
 CORS(userControl_blueprint)
-
 cursor = conn.cursor()
+def checkUserExits(id):
+    cursor.execute("Select * from users where id =?",[id])
+    user = cursor.fetchall()
+    if len(user) < 1:
+        return False
+    return True
 
-def getSportsSuggestion(nowWeatherData):
-    nowRainRate = nowWeatherData["rainRate"]
-    nowPM = nowWeatherData["pm2.5"]
-    nowAirQuality = nowWeatherData["aqi"]
-    nowTemp = nowWeatherData["temp"]
-    basketballSuggetstion = ""
-    badmintonSuggestion = ""
-    volleyballSuggestion = ""
-    tabletennisSuggestion = ""
-    runSuggestion = ""
-    swimSuggestion = ""
-    bikeSuggestion = ""
-    result = []
-    if int(nowRainRate) > 50:
-        basketballSuggetstion = "It might rain today, not suitable for playing basketball!"
-        badmintonSuggestion = "It might rain today,do not play badminton outdoor!"
-        volleyballSuggestion = "It might rain today,do not play volleyball outdoor!"
-        tabletennisSuggestion = "Today is suitable for playing tabletennis!"
-        
-    else:
-        basketballSuggetstion = "Today is suitable for playing  basketball!"
-        badmintonSuggestion = "Today is suitable for playing badminton no matter outdoor or indoor!"
-        volleyballSuggestion = "Today is suitable for playing volleyball no matter outdoor or indoor!"
-        tabletennisSuggestion = "Today is suitable for playing tabletennis!"
-    if nowAirQuality != None and int(nowAirQuality) > 100:
-        runSuggestion = "Today is suitable for running or jogging due to the nice air quality!"
-        bikeSuggestion = "Today is suitable for biking due to the nice air quality!"
-    else:
-        runSuggestion = "Running or Jogging might not be a good choice today due to the bad air quality!"
-        bikeSuggestion = "Biking not be a good choich today due to the bad air quality!"
-    if int(nowTemp) > 25:
-        swimSuggestion = "If you planning to swimming today, don't forget drink more water!"
-    else:
-        swimSuggestion = "If you planning to swimming today, take care of your body!"
-    result.append(basketballSuggetstion)
-    result.append(badmintonSuggestion)
-    result.append(volleyballSuggestion)
-    result.append(swimSuggestion)
-    result.append(bikeSuggestion)
-    result.append(runSuggestion)
-    result.append(tabletennisSuggestion)
-    return result
-    
-        
-    
 #登入
 @userControl_blueprint.route('/Login',methods=['POST'])
 def login():
@@ -97,12 +57,12 @@ def register():
             dt = UserDataResult("-1","","","Index Error. Please Follow Documentaion Instructions")
             response = make_response(jsonify(dt.to_dict()),404)
             return response           
-        cursor.execute("Select * from users where id =?",[id])
-        user = cursor.fetchall()
-        if len(user) < 1:
+        if checkUserExits(id) == False:
             dt = UserDataResult("-1","","","no user")
             response = make_response(jsonify(dt.to_dict()),404)
             return response
+        cursor.execute("Select * from users where id =?",[id])
+        user = cursor.fetchall()
         dt = UserDataResult(user[0][0],user[0][1],user[0][2],"successful")
         return jsonify(dt.to_dict())
         
@@ -169,10 +129,8 @@ def habits():
             dt = Habit("-1","Index Error. Please Follow Documentaion Instructions")
             response = make_response(jsonify(dt.to_dict()),404)
             return response  
-        cursor.execute("Select * from users where id =?",[id])
-        counter = cursor.fetchall()
         habits = []
-        if len(counter) < 1:
+        if checkUserExits(id) == False:
             habit = Habit(-1,"Undefine User")
             habits.append(habit.to_dict())
             response = make_response(jsonify(habits),404)
@@ -204,9 +162,7 @@ def habits():
             }
             response = make_response(jsonify(result),404)
             return response
-        cursor.execute("Select * from users where id =?",[userID])
-        counter = cursor.fetchall()
-        if len(counter) < 1:
+        if checkUserExits(userID) == False:
             result = {
                 "Stats" : "No user"
             }
@@ -235,13 +191,11 @@ def sports():
             dt = Sport("-1","Index Error. Please Follow Documentaion Instructions")
             response = make_response(jsonify(dt.to_dict()),404)
             return response  
-        cursor.execute("Select * from users where id =?",[id])
-        counter = cursor.fetchall()
         sports = []
-        if len(counter) < 1:
+        if checkUserExits(id) == False:
             sport = Sport(-1,"Undefine User")
             sports.append(sport.to_dict())
-            response = make_response(jsonify(sports),404)
+            response = make_response(jsonify(sports),200)
             return response
         sql_query = """
         SELECT * FROM sports where sports.id in 
@@ -269,9 +223,7 @@ def sports():
             }
             response = make_response(jsonify(result),404)
             return response
-        cursor.execute("Select * from users where id =?",[userID])
-        counter = cursor.fetchall()
-        if len(counter) < 1:
+        if checkUserExits(id) == False < 1:
             result = {
                 "Stats" : "No user"
             }
@@ -289,21 +241,19 @@ def sports():
         response = make_response(jsonify(result),201)
         return response
     
-@userControl_blueprint.route('/GetDailySportsSuggestion',methods=['POST'])
+@userControl_blueprint.route('/GetDailySuggestion',methods=['POST'])
 def getDailySportsSuggestion():
     requestData = request.get_json()
     id = int(requestData.get('userID'))
     longtitude = float(requestData.get('longitude'))
     latitude = float(requestData.get('latitude'))
+    sports = []
     if id == None or longtitude == None or longtitude == None:
         sport = Sport(-1,"Index Error. Please Follow Documentaion Instructions")
         sports.append(sport.to_dict())
         response = make_response(jsonify(sports),404)
         return response
-    cursor.execute("Select * from users where id =?",[id])
-    counter = cursor.fetchall()
-    sports = []
-    if len(counter) < 1:
+    if checkUserExits(id) == False < 1:
         sport = Sport(-1,"Undefine User")
         sports.append(sport.to_dict())
         response = make_response(jsonify(sports),404)
@@ -312,18 +262,65 @@ def getDailySportsSuggestion():
     SELECT * FROM sports where sports.id in 
     (select sportID from usersAndSports where userID=?)
     """ 
+    sql_query2 = """
+    SELECT * FROM habits where habits.id in 
+    (select habitID from usersAndHabits where userID=?)
+    """ 
     cursor.execute(sql_query,[id])
     sportsData = cursor.fetchall()
-    nowWeatherData = dataHandler.weatherData.get12hData(longtitude,latitude)[0]
-    print("Im here")
-    sportsSuggestion = getSportsSuggestion(nowWeatherData)
-    suggestionResult = []
+    cursor.execute(sql_query2,[id])
+    habitsData = cursor.fetchall()
+    nowWeatherData = dataHandler.weatherData.get12hData(longtitude,latitude,"")[0]
+    handler = DailySuggestion(nowWeatherData)
+    sportsSuggestions = handler.getSportsSuggestion()
+    sportSuggestionResult = []
     for sportData in sportsData:
-        tp = SportsSuggestion(sportData[1],sportsSuggestion[sportData[0]-1])
-        suggestionResult.append(tp.to_dict())
-    response = make_response(jsonify(suggestionResult),200)
+        tp = SportsSuggestion(sportData[1],sportsSuggestions[sportData[0]-1])
+        sportSuggestionResult.append(tp.to_dict())
+    habitSuggestions = handler.getHabitsSuggestion()
+    habitSuggestionResult = []
+    for habitData in habitsData:
+        tp = HabitsSuggestion(habitData[1],habitSuggestions[habitData[0]-1])
+        habitSuggestionResult.append(tp.to_dict())
+    final_dict = {}
+    dressing_dict = [{"name": "衣著", "suggestion" : handler.getDressingSuggestion()}]
+    health_dict = [{"name": "健康", "suggestion" : handler.getHealthSuggestion()}]
+    tansportation_dict = [{"name": "交通", "suggestion" : handler.getTransportationSuggestion()}]
+    final_dict["dressing"] = dressing_dict
+    final_dict["health"] = health_dict
+    final_dict["transportation"] = tansportation_dict
+    final_dict["sport"] = sportSuggestionResult
+    final_dict["habit"] = habitSuggestionResult
+    response = make_response(jsonify(final_dict),200)
     return response
-    
+
+
+@userControl_blueprint.route('/GetAllHabitsOption' , methods=['GET'])
+def getAllHabitsOption():
+    sql_query = """
+    select * from habits
+    """
+    cursor.execute(sql_query)
+    dataSet = cursor.fetchall()
+    result = []
+    for data in dataSet:
+        result.append(Habit(data[0],data[1]).to_dict())
+    response = make_response(jsonify(result),200)
+    return response
+
+@userControl_blueprint.route('/GetAllSportsOption' , methods=['GET'])
+def getAllSportsOption():
+    sql_query = """
+    select * from sports
+    """
+    cursor.execute(sql_query)
+    dataSet = cursor.fetchall()
+    result = []
+    for data in dataSet:
+        result.append(Sport(data[0],data[1]).to_dict())
+    response = make_response(jsonify(result),200)
+    return response
+
 
 
     

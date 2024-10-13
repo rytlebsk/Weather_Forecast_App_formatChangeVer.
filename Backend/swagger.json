@@ -15,7 +15,7 @@
   },
   "servers": [
     {
-      "url": "http://127.0.0.1:8000/"
+      "url": "https://weatherapp-582979367086.asia-east1.run.app/"
     }
   ],
   "tags": [
@@ -40,8 +40,12 @@
       "description": "user sport"
     },
     {
-      "name": "sport suggest",
-      "description": "user sport suggest"
+      "name": "sport suggestion",
+      "description": "user sport suggestion"
+    },
+    {
+      "name": "habit suggestion",
+      "description": "user habit suggestion"
     }
   ],
   "paths": {
@@ -484,12 +488,12 @@
         }
       }
     },
-    "/Users/GetDailySportsSuggestion": {
+    "/Users/GetDailySuggestion": {
       "post": {
         "tags": [
-          "sport suggest"
+          "sport suggesion"
         ],
-        "summary": "get sport suggest",
+        "summary": "get sport suggestion",
         "description": "input your id longitude latitude",
         "requestBody": {
           "required": true,
