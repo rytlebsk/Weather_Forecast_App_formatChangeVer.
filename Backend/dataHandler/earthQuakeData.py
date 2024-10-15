@@ -7,15 +7,15 @@ def getEarthDataFCM():
     resultData = []
     for i in range(len(earthquakeData)):
         resultData.append({
-            "color":earthquakeData[i]["ReportColor"],
-            "content":earthquakeData[i]["ReportContent"],
-            "intensity":[]
+            "color":     earthquakeData[i]["ReportColor"],
+            "content":   earthquakeData[i]["ReportContent"],
+            "intensity": []
         })
         shakeArea = earthquakeData[i]["Intensity"]["ShakingArea"]
-        for j in range(len(shakeArea)):
-            if not -shakeArea[j]["AreaDesc"].find("最"):
-                del shakeArea[j]["EqStation"]
-                resultData[i]["intensity"].append(shakeArea[j])
+        for nowElement in shakeArea:
+            if not -nowElement["AreaDesc"].find("最"):
+                del nowElement["EqStation"]
+                resultData[i]["intensity"].append(nowElement)
             resultData[i]["intensity"] = sorted(resultData[i]["intensity"], key=lambda x: int(x['AreaIntensity'][0]))
     return resultData
 
@@ -26,22 +26,22 @@ def getEarthData(lon,lat):
         shakeLon = earthquakeData[i]["EarthquakeInfo"]["Epicenter"]["EpicenterLongitude"]
         shakeLat = earthquakeData[i]["EarthquakeInfo"]["Epicenter"]["EpicenterLatitude"]
         resultData.append({
-            "color":earthquakeData[i]["ReportColor"],
-            "content":earthquakeData[i]["ReportContent"],
-            "reportImg":earthquakeData[i]["ReportImageURI"],
-            "shakeImg":earthquakeData[i]["ShakemapImageURI"],
-            "time":earthquakeData[i]["EarthquakeInfo"]["OriginTime"],
-            "depth":str(earthquakeData[i]["EarthquakeInfo"]["FocalDepth"]),
-            "location":earthquakeData[i]["EarthquakeInfo"]["Epicenter"]["Location"],
-            "magnitude":str(earthquakeData[i]["EarthquakeInfo"]["EarthquakeMagnitude"]["MagnitudeValue"]),
-            "distance":haversine(lat,lon,shakeLat,shakeLon),
-            "intensity":[]
+            "color":     earthquakeData[i]["ReportColor"],
+            "content":   earthquakeData[i]["ReportContent"],
+            "reportImg": earthquakeData[i]["ReportImageURI"],
+            "shakeImg":  earthquakeData[i]["ShakemapImageURI"],
+            "time":      earthquakeData[i]["EarthquakeInfo"]["OriginTime"],
+            "depth":     str(earthquakeData[i]["EarthquakeInfo"]["FocalDepth"]),
+            "location":  earthquakeData[i]["EarthquakeInfo"]["Epicenter"]["Location"],
+            "magnitude": str(earthquakeData[i]["EarthquakeInfo"]["EarthquakeMagnitude"]["MagnitudeValue"]),
+            "distance":  haversine(lat,lon,shakeLat,shakeLon),
+            "intensity": []
         })
         shakeArea = earthquakeData[i]["Intensity"]["ShakingArea"]
-        for j in range(len(shakeArea)):
-            if not -shakeArea[j]["AreaDesc"].find("最"):
-                del shakeArea[j]["EqStation"]
-                resultData[i]["intensity"].append(shakeArea[j])
+        for nowElement in shakeArea:
+            if not -nowElement["AreaDesc"].find("最"):
+                del nowElement["EqStation"]
+                resultData[i]["intensity"].append(nowElement)
             resultData[i]["intensity"] = sorted(resultData[i]["intensity"], key=lambda x: int(x['AreaIntensity'][0]))
     return resultData
 
