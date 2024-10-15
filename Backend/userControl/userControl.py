@@ -223,7 +223,7 @@ def sports():
             }
             response = make_response(jsonify(result),404)
             return response
-        if checkUserExits(id) == False < 1:
+        if checkUserExits(userID) == False:
             result = {
                 "Stats" : "No user"
             }
