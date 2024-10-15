@@ -206,7 +206,7 @@ def sports():
         for i in data:
             sport = Sport(i[0],i[1])
             sports.append(sport.to_dict())
-        response = make_response(jsonify(sports),404)
+        response = make_response(jsonify(sports),200)
         return response
     if request.method == "POST":
         '''
