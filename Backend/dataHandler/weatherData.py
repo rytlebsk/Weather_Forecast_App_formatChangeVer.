@@ -1,28 +1,12 @@
 from datetime import datetime,timedelta
-from geopy.geocoders import Nominatim
 from .airData import getAirData
-import geopy.geocoders
-import requests,json,certifi,ssl,math,pytz
+from datetime import datetime
+from .methodPack import setLocate
+import requests,json,math,pytz
+import redis
 
 # 經度、緯度、時間 lat,lon,time
-
-# 設定憑證
-ctx = ssl.create_default_context(cafile=certifi.where())
-geopy.geocoders.options.default_ssl_context = ctx
-
-# 實例化
-geolocator = Nominatim(scheme='http',user_agent='test')
-
-def setLocate(latitude,longitude):
-    # 進行反向地理編碼
-    location = geolocator.reverse((latitude, longitude))
-    nowCity = location.raw['address']['city']
-    nowdistrict = location.raw['address']['suburb']
-    return {
-         "city":nowCity,
-         "district":nowdistrict
-    }
-
+r = redis.Redis(host='redis', port=6379, db=0)
 def getTime(t): return (t - timedelta(minutes=90)).strftime("%Y-%m-%dT%H:%M:%S")# 取得符合取得資料格式的時間
 
 # 匯入城市及精確度代號
@@ -38,6 +22,11 @@ def url(ft,nowCity,nowdistrict,nowTime):
 def get3hData(lon,lat,cusloc):
     loc = cusloc if cusloc else setLocate(lat,lon)# 引入地理編碼
     offsetTime = getTime(datetime.now(pytz.timezone('Asia/Taipei')))# 修正時間
+    cache_key = f"Weather_Data{lon}_{lat}_{offsetTime[:10]}_3"  # Create a unique key based on coordinates and date
+    cached_data = r.get(cache_key)
+    if cached_data:
+        print("cached")
+        return json.loads(cached_data)
     weatherData = requests.get(url('3h',loc["city"],loc["district"],offsetTime)).json()["records"]["locations"][0]["location"][0]["weatherElement"]
     resultElement = [] # 初始化陣列
     noData = 1 if datetime.strptime(weatherData[0]["time"][0]["startTime"],"%Y-%m-%d %H:%M:%S").hour%6!=0 else 0# 判斷是否處於降雨率無資料的情況
@@ -62,12 +51,18 @@ def get3hData(lon,lat,cusloc):
             "aqi":      None,
             "pm2.5":    None
         })})
-
+    r.setex(cache_key, 3600, json.dumps(resultElement))
+    print(r.get('test_key'))
     return resultElement
 
 def get12hData(lon,lat,cusloc):
     loc = cusloc if cusloc else setLocate(lat,lon)# 引入地理編碼
     offsetTime = getTime(datetime.now(pytz.timezone('Asia/Taipei')))# 修正時間
+    cache_key = f"Weather_Data{lon}_{lat}_{offsetTime[:10]}_12"  # Create a unique key based on coordinates and date
+    cached_data = r.get(cache_key)
+    if cached_data:
+        print("cached")
+        return json.loads(cached_data)
     weatherData = requests.get(url('12h',loc["city"],loc["district"],offsetTime)).json()["records"]["locations"][0]["location"][0]["weatherElement"]
     resultElement = []# 初始化陣列
     dayOffset = 0 if datetime.strptime(weatherData[0]["time"][0]["startTime"],"%Y-%m-%d %H:%M:%S").hour < 18 else 1#調整數據為白天
@@ -92,8 +87,10 @@ def get12hData(lon,lat,cusloc):
                 "aqi":      None,
                 "pm2.5":    None
         })# 體感溫度以最大與最小取平均值,降雨量無較遠資料
-
+    r.setex(cache_key, 3600, json.dumps(resultElement))
+    print(r.get('test_key'))
     return resultElement
+
 # 121.66248756678424121,25.06715187342581
 # 已知問題 
 # 1.一週天氣若於白天請求，無法求取當天白天資料 解決辦法：以現時之天氣取代
