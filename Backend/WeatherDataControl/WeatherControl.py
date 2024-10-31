@@ -14,7 +14,7 @@ def Get12hData():
     userID = data.get('userID')
     pre_longtitud = data.get('longitude')
     pre_latitude = data.get('latitude')
-    pre_cusloc = data.get('cusloc') if data.get('cusloc') != None else ""
+    pre_cusloc = data.get('cusloc') if data.get('cusloc') != None else None
     if pre_longtitud == None or pre_latitude == None:
         result = {
             "Stats" : "Index Error. Please Follow Documentaion Instructions"
@@ -24,9 +24,12 @@ def Get12hData():
     longtitude = float(pre_longtitud)
     latitude = float(pre_latitude)
     a = dataHandler.weatherData.get12hData(longtitude,latitude,pre_cusloc)
-    if pre_cusloc == "":
-        cursor.execute("UPDATE users set city =? where id =?",(a[0]["city"],userID))
-    conn.commit()
+    if userID != None:
+        counter = len(cursor.execute("Select * from users where id=?",[userID]).fetchall())
+        if pre_cusloc == None and counter > 0:
+            cursor.execute("UPDATE users set city =? where id =?",(a[0]["city"],userID))
+            print("Save Region Successfully")
+            conn.commit()
     return jsonify(a)
 @weatherControl_blueprint.route('/Get3hData',methods=['POST'])
 def Get3hData():
@@ -34,7 +37,7 @@ def Get3hData():
     userID = data.get('userID')
     pre_longtitud = data.get('longitude')
     pre_latitude = data.get('latitude')
-    pre_cusloc = data.get('cusloc') if data.get('cusloc') != None else ""
+    pre_cusloc = data.get('cusloc') if data.get('cusloc') != None else None
     if pre_longtitud == None or pre_latitude == None:
         result = {
             "Stats" : "Index Error. Please Follow Documentaion Instructions"
@@ -44,6 +47,10 @@ def Get3hData():
     longtitude = float(data.get('longitude'))
     latitude = float(data.get('latitude'))
     a = dataHandler.weatherData.get3hData(longtitude,latitude,pre_cusloc)
-    if pre_cusloc == "":
-        cursor.execute("UPDATE users set city =? where id =?",(a[0]["city"],userID))
+    if userID != None:
+        counter = len(cursor.execute("Select * from users where id=?",[userID]).fetchall())
+        if pre_cusloc == None and counter > 0:
+            cursor.execute("UPDATE users set city =? where id =?",(a[0]["city"],userID))
+            print("Save Region Successfully")
+            conn.commit()
     return jsonify(a)

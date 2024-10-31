@@ -1,4 +1,4 @@
-from flask import Blueprint,request,jsonify
+from flask import Blueprint,request,jsonify,make_response
 from dataHandler.earthQuakeData import getEarthData2,getEarthData
 import dataHandler.weatherData
 from flask_socketio import emit
@@ -24,7 +24,11 @@ def getEarthQuackData():
     longtitude = float(pre_longtitude)
     pre_latitude = data.get('latitude')
     latitude = float(pre_latitude)
-    return jsonify(getEarthData(longtitude,latitude,getStorageCity(userID)))
+    if latitude == None or longtitude == None:
+        response = make_response("Index Error. Please Follow Documentaion Instructions",404)
+        return response
+    response = make_response(getEarthData(longtitude,latitude,getStorageCity(userID)),201)
+    return response
 # 定義地震polling專用事件
 def check_and_broadcast_updates(socketio,sid, latitude, longitude,userID,stop_event):
     """
