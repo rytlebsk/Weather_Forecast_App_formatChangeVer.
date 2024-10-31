@@ -216,14 +216,13 @@ def sports():
 def getDailySportsSuggestion():
     requestData = request.get_json()
     id = int(requestData.get('userID'))
-    longtitude = float(requestData.get('longitude'))
-    latitude = float(requestData.get('latitude'))
-    sports = []
-    if id == None or longtitude == None or longtitude == None:
+    pre_cusloc = requestData.get('cusloc')
+    if pre_cusloc == None or pre_cusloc == "" or id == None:
         sport = Sport(-1,"Index Error. Please Follow Documentaion Instructions")
         sports.append(sport.to_dict())
         response = make_response(jsonify(sports),404)
         return response
+    sports = []
     if checkUserExits(id) == False < 1:
         sport = Sport(-1,"Undefine User")
         sports.append(sport.to_dict())
@@ -241,7 +240,7 @@ def getDailySportsSuggestion():
     sportsData = cursor.fetchall()
     cursor.execute(sql_query2,[id])
     habitsData = cursor.fetchall()
-    nowWeatherData = dataHandler.weatherData.get12hData(longtitude,latitude,"")[0]
+    nowWeatherData = dataHandler.weatherData.get12hData(0.1,0.1,pre_cusloc)[0]
     handler = DailySuggestion(nowWeatherData)
     sportsSuggestions = handler.getSportsSuggestion()
     sportSuggestionResult = []

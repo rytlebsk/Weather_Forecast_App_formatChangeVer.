@@ -76,7 +76,7 @@ class DailySuggestion():
             badmintonSuggestion = "Today is suitable for playing badminton no matter outdoor or indoor!"
             volleyballSuggestion = "Today is suitable for playing volleyball no matter outdoor or indoor!"
             tabletennisSuggestion = "Today is suitable for playing tabletennis!"
-        if nowAirQuality != None and int(nowAirQuality) > 100:
+        if nowAirQuality != None and nowAirQuality != "fetch data error" and int(nowAirQuality) > 100:
             runSuggestion = "Today is suitable for running or jogging due to the nice air quality!"
             bikeSuggestion = "Today is suitable for biking due to the nice air quality!"
         else:
@@ -122,7 +122,7 @@ class DailySuggestion():
             hikingSuggestion = "Today is hot day, if you wanna go hiking, don't forget drink water!"
             mountainSuggestion = "Today is hot day, if you wanna go mountain climbing, don't forget drink water!"
             outdoorSuggestion = "Today is hot day, if you have some outdoor activity, don't forget drink water!"
-        if nowAirQuality != None and  int(nowAirQuality) >100:
+        if nowAirQuality != None and nowAirQuality != "fetch data error" and  int(nowAirQuality) >100:
             hikingSuggestion = "Today has bad air quality, we suggest you do not go hiking"
             mountainSuggestion = "Today has bad air quality, we suggest you do not go mountain climbing"
             outdoorSuggestion = "Today has bad air quality, wearing mask if you have outdoor activity"
@@ -145,14 +145,14 @@ class DailySuggestion():
         else:
             result += "It's a very cold day today, don't go out and put on your coat. "
         if(int(nowRainRate) >= 60):
-            reuslt += "And don't forget bring your umbrella!"
+            result += "And don't forget bring your umbrella!"
         return result
     
     def getHealthSuggestion(self):
         nowPM = self.nowWeatherData["pm2.5"]
         nowBodyTemp = self.nowWeatherData["bodyTemp"]
         result = ""
-        if(nowPM != None and int(nowPM) > 15):
+        if nowPM != None and nowPM != "fetch data error"  and int(nowPM) > 15:
             result += "The air is not good today, remember to wear a mask. "
         else:
             result += "The air is good today. "
