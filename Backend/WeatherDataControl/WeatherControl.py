@@ -15,7 +15,7 @@ def Get12hData():
     pre_longtitud = data.get('longitude')
     pre_latitude = data.get('latitude')
     pre_cusloc = data.get('cusloc') if data.get('cusloc') != None else ""
-    if pre_longtitud == None or pre_latitude == None or userID == None:
+    if pre_longtitud == None or pre_latitude == None:
         result = {
             "Stats" : "Index Error. Please Follow Documentaion Instructions"
             }
