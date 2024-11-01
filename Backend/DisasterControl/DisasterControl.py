@@ -21,12 +21,13 @@ def getEarthQuackData():
     data = request.get_json();
     userID = data.get('userID')
     pre_longtitude = data.get('longitude')
-    longtitude = float(pre_longtitude)
     pre_latitude = data.get('latitude')
-    latitude = float(pre_latitude)
-    if latitude == None or longtitude == None:
-        response = make_response("Index Error. Please Follow Documentaion Instructions",404)
+    if pre_latitude == None or pre_longtitude == None:
+        response = make_response({"Status": "Index Error. Please Follow Documentaion Instructions"},404)
         return response
+    latitude = float(pre_latitude)
+    longtitude = float(pre_longtitude)
+    print(getStorageCity(userID))
     response = make_response(getEarthData(longtitude,latitude,getStorageCity(userID)),201)
     return response
 # 定義地震polling專用事件

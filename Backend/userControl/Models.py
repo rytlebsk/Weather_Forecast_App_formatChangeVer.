@@ -66,26 +66,26 @@ class DailySuggestion():
         bikeSuggestion = ""
         result = []
         if int(nowRainRate) > 50:
-            basketballSuggetstion = "It might rain today, not suitable for playing basketball!"
-            badmintonSuggestion = "It might rain today,do not play badminton outdoor!"
-            volleyballSuggestion = "It might rain today,do not play volleyball outdoor!"
-            tabletennisSuggestion = "Today is suitable for playing tabletennis!"
+            basketballSuggetstion = "今天可能下雨，不適合打籃球！"
+            badmintonSuggestion = "今天可能下雨，不要在戶外打羽毛球！"
+            volleyballSuggestion = "今天可能下雨，不要在戶外打排球！"
+            tabletennisSuggestion = "今天適合打乒乓球！"
             
         else:
-            basketballSuggetstion = "Today is suitable for playing  basketball!"
-            badmintonSuggestion = "Today is suitable for playing badminton no matter outdoor or indoor!"
-            volleyballSuggestion = "Today is suitable for playing volleyball no matter outdoor or indoor!"
-            tabletennisSuggestion = "Today is suitable for playing tabletennis!"
+            basketballSuggetstion = "今天適合打籃球！"
+            badmintonSuggestion = "今天無論室外或室內都適合打羽毛球！"
+            volleyballSuggestion = "今天適合打排球，不論室外或室內！"
+            tabletennisSuggestion = "今天適合打乒乓球！"
         if nowAirQuality != None and nowAirQuality != "fetch data error" and int(nowAirQuality) > 100:
-            runSuggestion = "Today is suitable for running or jogging due to the nice air quality!"
-            bikeSuggestion = "Today is suitable for biking due to the nice air quality!"
+            runSuggestion = "今天空氣品質好，適合跑步或慢跑！"
+            bikeSuggestion = "今天空氣品質好，適合騎自行車！"
         else:
-            runSuggestion = "Running or Jogging might not be a good choice today due to the bad air quality!"
-            bikeSuggestion = "Biking not be a good choich today due to the bad air quality!"
+            runSuggestion = "由於空氣品質不好，今天跑步或慢跑可能不是一個好的選擇！"
+            bikeSuggestion = "由於空氣品質不好，今天跑步或慢跑可能不是一個好的選擇！"
         if int(nowTemp) > 25:
-            swimSuggestion = "If you planning to swimming today, don't forget drink more water!"
+            swimSuggestion = "如果您今天打算游泳，別忘了多喝水！"
         else:
-            swimSuggestion = "If you planning to swimming today, take care of your body!"
+            swimSuggestion = "如果您今天打算游泳，請照顧好自己的身體！"
         result.append(basketballSuggetstion)
         result.append(badmintonSuggestion)
         result.append(volleyballSuggestion)
@@ -104,72 +104,71 @@ class DailySuggestion():
         mountainSuggestion = ""
         gameSuggestion = ""
         outdoorSuggestion = ""
-        studySuggestion = "no matter what is the weather right now, you can still go study"
+        studySuggestion = "不管現在天氣如何，你都可以去閱讀"
         result = []
         if int(nowRainRate) > 50 :
-            dessertSuggestion = "Today might be rain, is a good choic for making dessert indoor! "
-            gameSuggestion ="Today might be rain, is a good choic for making dessert indoor! "
-            hikingSuggestion ="Today might be rain, hiking is not a good choice for today!"
-            mountainSuggestion ="Today might be rain, mountain climbing is not a good choice for today!"
-            outdoorSuggestion ="Today might be rain, don't forget bring your umbrella! "
+            dessertSuggestion = "今天可能下雨，在室內做甜點是不錯的選擇！"
+            gameSuggestion ="今天可能下雨，在室內做甜點是不錯的選擇！"
+            hikingSuggestion ="今天可能會下雨，今天徒步旅行不是一個好的選擇！"
+            mountainSuggestion ="今天可能會下雨，今天爬山不是一個好的選擇！"
+            outdoorSuggestion ="今天可能會下雨，別忘了帶傘！"
         else:
-            dessertSuggestion ="Today has nice weather, but still a good choic for doing dessert!"
-            gameSuggestion ="Today has nice weather, but still a good choic for playing game!"
-            hikingSuggestion ="Today has nice weather to go hiking!"
-            mountainSuggestion ="Today has nice weather to go mountain climbing!"
-            outdoorSuggestion ="Today has nice weather for outdoor activity!"
-        if int(nowTemp) > 30:
-            hikingSuggestion = "Today is hot day, if you wanna go hiking, don't forget drink water!"
-            mountainSuggestion = "Today is hot day, if you wanna go mountain climbing, don't forget drink water!"
-            outdoorSuggestion = "Today is hot day, if you have some outdoor activity, don't forget drink water!"
-        if nowAirQuality != None and nowAirQuality != "fetch data error" and  int(nowAirQuality) >100:
-            hikingSuggestion = "Today has bad air quality, we suggest you do not go hiking"
-            mountainSuggestion = "Today has bad air quality, we suggest you do not go mountain climbing"
-            outdoorSuggestion = "Today has bad air quality, wearing mask if you have outdoor activity"
-        result.append(dessertSuggestion)
-        result.append(hikingSuggestion)
-        result.append(mountainSuggestion)
-        result.append(gameSuggestion)
-        result.append(outdoorSuggestion)
-        result.append(studySuggestion)
-        return result
-    
+            dessertSuggestion ="今天天氣不錯，不過做甜點還是不錯的選擇！"
+            gameSuggestion ="今天天氣不錯，不過玩遊戲還是不錯的選擇！"
+            hikingSuggestion = "今天天氣很好，適合去健行！"
+            mountainSuggestion = "今天天氣很好，適合去爬山！"
+            outdoorSuggestion = "今天天氣很好，適合戶外活動！"
+            if int(nowTemp) > 30:
+                hikingSuggestion = "今天很熱，如果要去健行，別忘了多喝水！"
+                mountainSuggestion = "今天很熱，如果要去爬山，別忘了多喝水！"
+                outdoorSuggestion = "今天很熱，如果有戶外活動，別忘了多喝水！"
+            if nowAirQuality is not None and nowAirQuality != "fetch data error" and int(nowAirQuality) > 100:
+                hikingSuggestion = "今天空氣品質不好，建議不要去健行"
+                mountainSuggestion = "今天空氣品質不好，建議不要去爬山"
+                outdoorSuggestion = "今天空氣品質不好，若有戶外活動，記得戴口罩"
+            result.append(dessertSuggestion)
+            result.append(hikingSuggestion)
+            result.append(mountainSuggestion)
+            result.append(gameSuggestion)
+            result.append(outdoorSuggestion)
+            result.append(studySuggestion)
+            return result
+
     def getDressingSuggestion(self):
         nowRainRate = self.nowWeatherData["rainRate"]
         nowTemp = self.nowWeatherData["temp"]
         result = ""
-        if(int(nowTemp) > 30):
-            result += "It's hot today, so you can wear less clothes. ";
-        elif (int(nowTemp) <=30 and int(nowTemp) >20):
-            result += "The weather is cool today, don’t forget to bring extra coats. "
+        if int(nowTemp) > 30:
+            result += "今天很熱，可以穿少一點衣服。"
+        elif 20 < int(nowTemp) <= 30:
+            result += "今天天氣涼爽，別忘了帶件外套。"
         else:
-            result += "It's a very cold day today, don't go out and put on your coat. "
-        if(int(nowRainRate) >= 60):
-            result += "And don't forget bring your umbrella!"
+            result += "今天非常冷，盡量不要出門，記得穿上外套。"
+        if int(nowRainRate) >= 60:
+            result += "而且別忘了帶雨傘！"
         return result
-    
+
     def getHealthSuggestion(self):
         nowPM = self.nowWeatherData["pm2.5"]
         nowBodyTemp = self.nowWeatherData["bodyTemp"]
         result = ""
-        if nowPM != None and nowPM != "fetch data error"  and int(nowPM) > 15:
-            result += "The air is not good today, remember to wear a mask. "
+        if nowPM is not None and nowPM != "fetch data error" and int(nowPM) > 15:
+            result += "今天空氣不好，記得戴口罩。"
         else:
-            result += "The air is good today. "
-        if(nowBodyTemp != None and int(nowBodyTemp) > 30):
-            result += "And don't forget drink more water! because of hot day!"
+            result += "今天空氣品質良好。"
+        if nowBodyTemp is not None and int(nowBodyTemp) > 30:
+            result += "別忘了多喝水，因為天氣炎熱！"
         else:
-            result += "And remember drinking water is good for your health! "
-        
+            result += "記得多喝水，對身體有益！"
         return result
 
     def getTransportationSuggestion(self):
         nowRainRate = self.nowWeatherData["rainRate"]
         result = ""
-        if(int(nowRainRate) > 50):
-            result += "It may rain today, you can try driving or taking public transportation"
+        if int(nowRainRate) > 50:
+            result += "今天可能會下雨，建議開車或搭乘大眾交通工具。"
         else:
-            result += "It won't rain very much today. You can commute by bicycle or by walking."
+            result += "今天降雨機率不高，可以騎自行車或步行通勤。"
         return result
 
 
