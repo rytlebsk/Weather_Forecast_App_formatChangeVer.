@@ -19,6 +19,7 @@ def setLocate(latitude,longitude):
          "city":nowCity,
          "district":nowdistrict
     }
+
 def getStorageCity(userID):
     cursor.execute("select city from users where ID =?",[userID])
     data = cursor.fetchall()
