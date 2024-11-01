@@ -31,22 +31,22 @@ class Sport():
         }
 class SportsSuggestion():
     def __init__ (self,sportName,sportSuggestion):
-        self.sportName = sportName
-        self.sportSuggestion = sportSuggestion
+        self.name = sportName
+        self.suggestion = sportSuggestion
     def to_dict(self):
         return {
-                "sportName": self.sportName,
-                "sportSuggestion" : self.sportSuggestion
+                "name": self.name,
+                "suggestion" : self.suggestion
             }
     
 class HabitsSuggestion():
     def __init__(self,habitName,habitSuggestion):
-        self.habitName = habitName
-        self.habitSuggestion = habitSuggestion
+        self.name = habitName
+        self.suggestion = habitSuggestion
     def to_dict(self):
         return {
-                "habitName": self.habitName,
-                "habitSuggestion" : self.habitSuggestion
+                "name": self.name,
+                "suggestion" : self.suggestion
                 }
     
 class DailySuggestion():
