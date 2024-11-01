@@ -1,11 +1,10 @@
 import { Tabs } from "expo-router";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import * as Location from "expo-location";
-import { Provider } from "react-redux";
+import { Provider, useSelector } from "react-redux";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { TabBarIcon } from "@/components/navigation/TabBarIcon";
-import { Colors } from "@/constants/Colors";
 import { useColorScheme } from "@/hooks/useColorScheme";
 
 import store from "@/redux/store";
@@ -13,20 +12,25 @@ import {
   updateWeatherData3h,
   updateWeatherData12h,
 } from "@/redux/weatherDataSlice";
-import { setRegion } from "@/redux/regionListSlice";
-import { updateTimeInterval, updateRegion } from "@/redux/selecterSlice";
-import { setUser } from "@/redux/userSlice";
+import { setRegion, updateRegion } from "@/redux/regionListSlice";
+import {
+  setSelectedRegion,
+  setSelectedTimeInterval,
+} from "@/redux/selecterSlice";
+import { removeUser, setUser } from "@/redux/userSlice";
 import { setUserSettings } from "@/redux/userSettingsSlice";
-import { updateDailySportSug } from "@/redux/dailySportSugSlice";
+import { updateDailySug } from "@/redux/dailySugSlice";
+import { StyleSheet } from "react-native";
+
+// todo list
+// 1. Change region-selector to number
 
 export interface WeatherDataList {
   [key: string]: WeatherData[][];
 }
-
 export interface WeatherData {
   [key: string]: string;
 }
-
 export const indicatorsDictionary = {
   aqi: {
     title: "空氣品質",
@@ -69,45 +73,41 @@ export const indicatorsDictionary = {
     value: "",
   },
 };
-
 export interface Region {
   id: string;
   name: string;
   longitude: string;
   latitude: string;
 }
-
+export interface RegionList {
+  city: {
+    [key: string]: string[];
+  };
+}
 export interface Selecter {
   region: string;
   timeInterval: number;
 }
-
 export interface User {
   account: string;
   password: string;
   id: string;
   status: string;
 }
-
 export interface Sport {
   sportName: string;
   id: number;
 }
-
 export interface Habit {
   habitName: string;
   id: number;
 }
-
 export interface UserSettings {
   sport: Sport[];
   habit: Habit[];
 }
-
-export interface DailySportSug {
-  sportName: string;
-  id: number;
-  sportSuggestion: string;
+export interface DailySug {
+  [key: string]: { name: string; suggestion: string }[];
 }
 
 //////////////////////
@@ -115,141 +115,311 @@ export interface DailySportSug {
 //////////////////////
 
 export const userLogin = async (_account: string, _password: string) => {
-  try {
-    const user = await HandleUserLogin(_account, _password);
-    if (!user || user.id === "-1") {
-      throw new Error(user?.status ?? "User data is empty");
-    }
+  // FETCH
+  const user = await HandleUserLogin(_account, _password);
 
-    const userSettings = {
-      sport: await HandleGetUserSports(user.id),
-      habit: await HandleGetUserHabits(user.id),
-    };
-
-    AsyncStorage.setItem("userID", JSON.stringify(user.id));
-    store.dispatch(setUser(user));
-    store.dispatch(setUserSettings(userSettings));
-
-    console.log("Login success");
-  } catch (error) {
-    console.error("Login fail: " + error);
+  // ERROR HANDLE
+  if (!user) {
+    return;
   }
-};
 
+  // STORE
+  store.dispatch(setUser(user));
+  AsyncStorage.setItem("userID", user.id);
+
+  // UPDATE
+  await Promise.all([updateUserSettings(), updateDailySuggestions()]);
+
+  console.log("Login as " + user.account);
+};
 export const userLogout = async () => {
-  try {
-    AsyncStorage.removeItem("userID");
-    store.dispatch(
-      setUser({ account: "", password: "", id: "-1", status: "" })
-    );
-    store.dispatch(setUserSettings({ sport: [], habit: [] }));
+  // STORE
+  AsyncStorage.setItem("userID", "-1");
+  store.dispatch(removeUser());
 
-    console.log("Logout success");
-  } catch (error) {
-    console.error("Logout fail: " + error);
-  }
+  console.log("Logged out");
 };
-
 export const userDelete = async () => {
-  try {
-    const userID = store.getState().user.id;
-    const response = await HandleDeleteUser(userID);
-
-    if (!response) {
-      throw new Error("Failed to delete user");
-    }
-
-    AsyncStorage.removeItem("userID");
-    store.dispatch(
-      setUser({ account: "", password: "", id: "-1", status: "" })
-    );
-    store.dispatch(setUserSettings({ sport: [], habit: [] }));
-
-    console.log("Delete success");
-  } catch (error) {
-    console.error("Delete fail: " + error);
+  // GET
+  let userID = store.getState().user?.id ?? "";
+  if (!userID) {
+    userID = (await AsyncStorage.getItem("userID")) || "-1";
   }
-};
 
+  // FETCH
+  const response = await HandleDeleteUser(userID);
+
+  // ERROR HANDLE
+  if (!response) {
+    return;
+  }
+
+  // STORE
+  AsyncStorage.setItem("userID", "-1");
+  store.dispatch(removeUser());
+
+  // AFTER
+  await Promise.all([userLogout()]);
+
+  console.log("Delete with response: " + response.status);
+};
 export const userRegister = async (_account: string, _password: string) => {
-  try {
-    const user = await HandleSetUser(_account, _password);
-    if (!user || user.id === "-1") {
-      throw new Error(user?.status ?? "User data is empty");
-    }
+  // FETCH
+  const user = await HandleSetUser(_account, _password);
 
-    const response =
-      (await HandleSetUserSports(user.id, [])) &&
-      (await HandleSetUserHabits(user.id, []));
-    if (!response) {
-      throw new Error("Failed to set user settings");
-    }
-
-    const userSettings = {
-      sport: await HandleGetUserSports(user.id),
-      habit: await HandleGetUserHabits(user.id),
-    };
-
-    AsyncStorage.setItem("userID", JSON.stringify(user.id));
-    store.dispatch(setUser(user));
-    store.dispatch(setUserSettings(userSettings));
-
-    console.log("Register success");
-  } catch (error) {
-    console.error("Register fail: " + error);
+  // ERROR HANDLE
+  if (!user) {
+    return;
   }
-};
 
+  // STORE
+  store.dispatch(setUser(user));
+  AsyncStorage.setItem("userID", user.id);
+
+  // UPDATE
+  await Promise.all([userLogin(_account, _password)]);
+
+  console.log("Register as " + user.account);
+};
 export const userSetSports = async (_sportIDs: number[]) => {
-  try {
-    const userID = store.getState().user.id;
-
-    const response = await HandleSetUserSports(userID, _sportIDs);
-    if (!response) {
-      throw new Error("Failed to set sports");
-    }
-
-    const sports = await HandleGetUserSports(userID);
-
-    store.dispatch(
-      setUserSettings({
-        sport: sports,
-        habit: store.getState().userSettings.habit,
-      })
-    );
-
-    console.log("Set sports success");
-  } catch (error) {
-    console.error("Set sports fail: " + error);
+  // GET
+  const habit = store.getState().userSettings?.habit ?? [];
+  let userID = store.getState().user?.id ?? "";
+  if (!userID) {
+    userID = (await AsyncStorage.getItem("userID")) || "-1";
   }
+
+  // FETCH
+  const response = await HandleSetUserSports(userID, _sportIDs);
+  const sports = await HandleGetUserSports(userID);
+
+  // ERROR HANDLE
+  if (!sports || !response) {
+    return;
+  }
+
+  // STORE
+  store.dispatch(
+    setUserSettings({
+      sport: sports,
+      habit: habit,
+    })
+  );
+
+  console.log("Set sports with response: " + response.status);
 };
-
 export const userSetHabits = async (_habitIDs: number[]) => {
-  try {
-    const userID = store.getState().user.id;
-
-    const response = await HandleSetUserHabits(userID, _habitIDs);
-    if (!response) {
-      throw new Error("Failed to set habits");
-    }
-
-    const habits = await HandleGetUserHabits(userID);
-
-    store.dispatch(
-      setUserSettings({
-        sport: store.getState().userSettings.sport,
-        habit: habits,
-      })
-    );
-
-    console.log("Set habits success");
-  } catch (error) {
-    console.error("Set habits fail: " + error);
+  // GET
+  const sport = store.getState().userSettings?.sport ?? [];
+  let userID = store.getState().user?.id ?? "";
+  if (!userID) {
+    userID = (await AsyncStorage.getItem("userID")) || "-1";
   }
+
+  // FETCH
+  const response = await HandleSetUserHabits(userID, _habitIDs);
+  const habits = await HandleGetUserHabits(userID);
+
+  // ERROR HANDLE
+  if (!habits || !response) {
+    return;
+  }
+
+  // STORE
+  store.dispatch(
+    setUserSettings({
+      sport: sport,
+      habit: habits,
+    })
+  );
+
+  console.log("Set habits with response: " + response.status);
+};
+export const userAddRegion = async (_region: Region) => {
+  // GET
+  let regions = store.getState().region ?? [];
+  if (regions.length === 0) {
+    regions = JSON.parse((await AsyncStorage.getItem("regions")) || "[]");
+  }
+
+  // ERROR HANDLE
+  if (regions.find((region) => region.id === _region.id)) {
+    console.error("Region already exists");
+    return;
+  }
+
+  // STORE
+  store.dispatch(setRegion([...regions, _region]));
+  AsyncStorage.setItem("regions", JSON.stringify([...regions, _region]));
+
+  // BEFORE UPDATE
+  await Promise.all([
+    updateWeatherData_3h(_region),
+    updateWeatherData_12h(_region),
+  ]);
+
+  console.log("Added region: " + _region.name);
+  console.log("Region list: " + JSON.stringify(store.getState().region));
+};
+export const getAllRegionList = async (): Promise<RegionList> => {
+  // FETCH
+  const regionList = await HandleGetAllRegion();
+
+  // ERROR HANDLE
+  if (!regionList) {
+    return { city: {} } as RegionList;
+  }
+
+  // RETURN
+  return regionList;
+};
+export const updateRegion0 = async () => {
+  // GET
+  let regions = store.getState().region ?? [];
+  if (regions.length === 0) {
+    regions = JSON.parse((await AsyncStorage.getItem("regions")) || "[]");
+  }
+
+  // FETCH
+  const region = await HandleGetLocation();
+
+  // ERROR HANDLE
+  if (!region) {
+    return;
+  }
+
+  // STORE
+  store.dispatch(updateRegion(region));
+  AsyncStorage.setItem(
+    "regions",
+    JSON.stringify([region, ...regions.filter((_, i) => i !== 0)])
+  );
+
+  // BEFORE UPDATE
+  await Promise.all([updateWeatherData_3h(), updateWeatherData_12h()]);
+
+  console.log("Updated region[0] to: " + region.name);
+  console.log("Region list: " + JSON.stringify(store.getState().region));
+};
+export const updateWeatherData_3h = async (_region?: Region) => {
+  // GET
+  let regions = _region ? [_region] : store.getState().region ?? [];
+  if (regions.length === 0) {
+    regions = JSON.parse((await AsyncStorage.getItem("regions")) || "[]");
+  }
+
+  await Promise.all(
+    regions.map(async (region) => {
+      // FETCH
+      const weatherData3h = await HandleGetWeatherData3h(region);
+
+      // ERROR HANDLING
+      if (!weatherData3h) return null;
+
+      // STORE
+      store.dispatch(updateWeatherData3h(weatherData3h));
+    })
+  );
+
+  console.log(
+    "Updated weather data (3h) for: " + (_region ? _region.name : "all regions")
+  );
+};
+export const updateWeatherData_12h = async (_region?: Region) => {
+  // GET
+  let regions = _region ? [_region] : store.getState().region ?? [];
+  if (regions.length === 0) {
+    regions = JSON.parse((await AsyncStorage.getItem("regions")) || "[]");
+  }
+
+  await Promise.all(
+    regions.map(async (region) => {
+      // FETCH
+      const weatherData12h = await HandleGetWeatherData12h(region);
+
+      // ERROR HANDLING
+      if (!weatherData12h) return null;
+
+      // STORE
+      store.dispatch(updateWeatherData12h(weatherData12h));
+    })
+  );
+
+  console.log(
+    "Updated weather data (12h) for: " +
+      (_region ? _region.name : "all regions")
+  );
+};
+export const updateUser = async () => {
+  // GET
+  let userID = store.getState().user?.id ?? "";
+  if (!userID) {
+    userID = (await AsyncStorage.getItem("userID")) || "-1";
+  }
+
+  // FETCH
+  const user = await HandleGetUser(userID);
+
+  // ERROR HANDLING
+  if (!user) {
+    return;
+  }
+
+  // STORE
+  store.dispatch(setUser(user));
+  AsyncStorage.setItem("userID", JSON.stringify(user.id));
+
+  // AFTER
+  await Promise.all([updateUserSettings(), updateDailySuggestions()]);
+
+  console.log("Updated user");
+};
+export const updateDailySuggestions = async () => {
+  // GET
+  let userID = store.getState().user?.id ?? "";
+  let regions = store.getState().region ?? [];
+  if (!userID) {
+    userID = (await AsyncStorage.getItem("userID")) || "-1";
+  }
+  if (regions.length === 0) {
+    regions = JSON.parse((await AsyncStorage.getItem("regions")) || "[]");
+  }
+
+  // FETCH
+  const dailySuggestions = (await HandleGetDailySug(userID, regions[0])) ?? {};
+
+  // STORE
+  store.dispatch(updateDailySug(dailySuggestions));
+
+  console.log("Updated daily suggestions");
+};
+export const updateUserSettings = async () => {
+  // GET
+  let userID = store.getState().user?.id ?? "";
+  if (!userID) {
+    userID = (await AsyncStorage.getItem("userID")) || "-1";
+  }
+
+  // FETCH
+  const userSettings = {
+    sport: (await HandleGetUserSports(userID)) ?? [],
+    habit: (await HandleGetUserHabits(userID)) ?? [],
+  };
+
+  // STORE
+  store.dispatch(setUserSettings(userSettings));
+  AsyncStorage.setItem("userSettings", JSON.stringify(userSettings));
+
+  console.log("Updated user settings");
+};
+export const requestLocationPermission = async () => {
+  let { status } = await Location.requestForegroundPermissionsAsync();
+
+  return status == "granted";
 };
 
 //////////////////
-// API fetching //
+// API fetching // (Return null & set global err msg if catch error)
 //////////////////
 
 const hostURL = "https://weather-2-10.onrender.com"; //`${hostURL}/`
@@ -257,456 +427,427 @@ const hostURL = "https://weather-2-10.onrender.com"; //`${hostURL}/`
 const HandleSetUser = async (
   _account: string,
   _password: string
-): Promise<User> => {
-  const data = await fetch(`${hostURL}/Users/`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      userAccount: _account,
-      password: _password,
-    }),
-  })
-    .then((response) => response.json())
-    .then((data) => {
-      return data as User;
+): Promise<User | null> => {
+  try {
+    const data = await fetch(`${hostURL}/Users/`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userAccount: _account,
+        password: _password,
+      }),
     })
-    .catch((error) => console.error("Error:", error));
+      .then((response) => response.json())
+      .then((data) => {
+        return data as User;
+      });
 
-  if (!data || data.id === "-1") {
-    throw new Error(data?.status ?? "Data is empty");
+    if (data.id == "-1") {
+      throw new Error(data.status);
+    }
+
+    return data;
+  } catch (e) {
+    console.error(e);
+    return null;
   }
-
-  return data;
 };
-
-const HandleGetUser = async (_userID: string): Promise<User> => {
-  const data = await fetch(`${hostURL}/Users/?id=${_userID}`, {
-    method: "GET",
-  })
-    .then((response) => response.json())
-    .then((data) => {
-      return data as User;
+const HandleGetUser = async (_userID: string): Promise<User | null> => {
+  try {
+    const data = await fetch(`${hostURL}/Users/?id=${_userID}`, {
+      method: "GET",
     })
-    .catch((error) => console.error("Error:", error));
+      .then((response) => response.json())
+      .then((data) => {
+        return data as User;
+      });
 
-  if (!data || data.id === "-1") {
-    throw new Error(data?.status ?? "Data is empty");
+    if (data.id == "-1") {
+      throw new Error(data.status);
+    }
+
+    return data;
+  } catch (e) {
+    console.error(e);
+    return null;
   }
-
-  return data;
 };
-
-const HandleDeleteUser = async (_userID: string): Promise<boolean> => {
-  const response = await fetch(`${hostURL}/Users/`, {
-    headers: {
-      "Content-Type": "application/json",
-    },
-    method: "DELETE",
-    body: JSON.stringify({
-      userID: _userID,
-    }),
-  })
-    .then((response) => response.json())
-    .then((data) => {
-      if (data.status === "Successful") {
-        return true;
-      } else {
-        return false;
-      }
+const HandleDeleteUser = async (_userID: string): Promise<any> => {
+  try {
+    const response = await fetch(`${hostURL}/Users/`, {
+      headers: {
+        "Content-Type": "application/json",
+      },
+      method: "DELETE",
+      body: JSON.stringify({
+        userID: _userID,
+      }),
     })
-    .catch((error) => console.error("Error:", error));
+      .then((response) => response.json())
+      .then((data) => {
+        return data;
+      });
 
-  return !!response;
+    if (response.status !== "Successful") {
+      throw new Error(response.status);
+    }
+
+    return response;
+  } catch (e) {
+    console.error(e);
+    return null;
+  }
 };
-
 const HandleUserLogin = async (
   _account: string,
   _password: string
-): Promise<User> => {
-  const data = await fetch(`${hostURL}/Users/Login`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      userAccount: _account,
-      password: _password,
-    }),
-  })
-    .then((response) => response.json())
-    .then((data) => {
-      return data as User;
+): Promise<User | null> => {
+  try {
+    const data = await fetch(`${hostURL}/Users/Login`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        userAccount: _account,
+        password: _password,
+      }),
     })
-    .catch((error) => console.error("Error:", error));
+      .then((response) => response.json())
+      .then((data) => {
+        return data as User;
+      });
 
-  if (!data || data.id === "-1") {
-    throw new Error(data?.status ?? "Data is empty");
+    if (data.id == "-1") {
+      throw new Error(data.status);
+    }
+
+    return data;
+  } catch (e) {
+    console.error(e);
+    return null;
   }
-
-  return data;
 };
-
 const HandleSetUserSports = async (
   _userID: string,
   _sportIDs: number[]
-): Promise<boolean> => {
-  const response = await fetch(`${hostURL}/Users/UserSports`, {
-    headers: {
-      "Content-Type": "application/json",
-    },
-    method: "POST",
-    body: JSON.stringify({
-      userID: _userID,
-      sportIDs: _sportIDs,
-    }),
-  })
-    .then((response) => response.json())
-    .then((data) => {
-      if (data.Stats === "Update Successful !") {
-        return true;
-      } else {
-        return false;
-      }
+): Promise<any> => {
+  try {
+    const response = await fetch(`${hostURL}/Users/UserSports`, {
+      headers: {
+        "Content-Type": "application/json",
+      },
+      method: "POST",
+      body: JSON.stringify({
+        userID: _userID,
+        sportIDs: _sportIDs,
+      }),
     })
-    .catch((error) => console.error("Error:", error));
+      .then((response) => response.json())
+      .then((data) => {
+        return data;
+      });
 
-  return !!response;
+    if (response.status !== "Successful") {
+      throw new Error(response.status);
+    }
+
+    return response;
+  } catch (e) {
+    console.error(e);
+    return null;
+  }
 };
-
-const HandleGetUserSports = async (_userID: string): Promise<Sport[]> => {
-  const data = await fetch(`${hostURL}/Users/UserSports?ID=${_userID}`, {
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-    },
-  })
-    .then((response) => response.json())
-    .then((data) => {
-      return data as Sport[];
+const HandleGetUserSports = async (
+  _userID: string
+): Promise<Sport[] | null> => {
+  try {
+    const data = await fetch(`${hostURL}/Users/UserSports?ID=${_userID}`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
     })
-    .catch((error) => console.error("Error:", error));
+      .then((response) => response.json())
+      .then((data) => {
+        return data as Sport[];
+      });
 
-  if (!Array.isArray(data) || data.length === 0) {
-    return [];
+    if (data[0]?.id == -1) {
+      throw new Error(data[0].sportName);
+    }
+
+    return data;
+  } catch (e) {
+    console.error(e);
+    return null;
   }
-
-  if (data[0].id === -1) {
-    throw new Error(data?.[0]?.sportName ?? "Data is empty");
-  }
-
-  return data;
 };
-
 const HandleSetUserHabits = async (
   _userID: string,
   _habitIDs: number[]
-): Promise<boolean> => {
-  const response = await fetch(`${hostURL}/Users/UserHabits`, {
-    headers: {
-      "Content-Type": "application/json",
-    },
-    method: "POST",
-    body: JSON.stringify({
-      userID: _userID,
-      habitIDs: _habitIDs,
-    }),
-  })
-    .then((response) => response.json())
-    .then((data) => {
-      if (data.Stats === "Update Successful !") {
-        return true;
-      } else {
-        return false;
-      }
+): Promise<any> => {
+  try {
+    const response = await fetch(`${hostURL}/Users/UserHabits`, {
+      headers: {
+        "Content-Type": "application/json",
+      },
+      method: "POST",
+      body: JSON.stringify({
+        userID: _userID,
+        habitIDs: _habitIDs,
+      }),
     })
-    .catch((error) => console.error("Error:", error));
+      .then((response) => response.json())
+      .then((data) => {
+        return data;
+      });
 
-  return !!response;
+    if (response.status !== "Successful") {
+      throw new Error(response.status);
+    }
+
+    return response;
+  } catch (e) {
+    console.error(e);
+    return null;
+  }
 };
-
-const HandleGetUserHabits = async (_userID: string): Promise<Habit[]> => {
-  const data = await fetch(`${hostURL}/Users/UserHabits?ID=${_userID}`, {
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-    },
-  })
-    .then((response) => {
-      return response.json();
+const HandleGetUserHabits = async (
+  _userID: string
+): Promise<Habit[] | null> => {
+  try {
+    const data = await fetch(`${hostURL}/Users/UserHabits?ID=${_userID}`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
     })
-    .then((data) => {
-      return data as Habit[];
+      .then((response) => {
+        return response.json();
+      })
+      .then((data) => {
+        return data as Habit[];
+      });
+
+    if (data[0]?.id == -1) {
+      throw new Error(data[0].habitName);
+    }
+
+    return data;
+  } catch (e) {
+    console.error(e);
+    return null;
+  }
+};
+// Need fix
+const HandleGetLocation = async (): Promise<Region | null> => {
+  try {
+    if (!(await requestLocationPermission())) {
+      throw new Error("Location permission denied");
+    }
+
+    const position = await Location.getCurrentPositionAsync({});
+
+    if (!position) {
+      throw new Error("Location not found");
+    }
+
+    // Make HandleGetRegionCoords() instead of this
+    const weatherData = await HandleGetWeatherDataCoords(
+      position.coords.latitude.toString(),
+      position.coords.longitude.toString()
+    );
+
+    if (!weatherData) {
+      throw new Error("Weather data is empty");
+    }
+
+    const region: Region = {
+      id: "0",
+      name: `${weatherData[0].city}, ${weatherData[0].district}`,
+      longitude: position.coords.longitude.toString(),
+      latitude: position.coords.latitude.toString(),
+    };
+
+    return region;
+  } catch (error) {
+    console.error(error);
+    return null;
+  }
+};
+// Change to HandleGetRegionCoords()
+const HandleGetWeatherDataCoords = async (
+  _latitude: string,
+  _longitude: string
+): Promise<WeatherData[] | null> => {
+  try {
+    const data = await fetch(`${hostURL}/Weather/Get3hData`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        longitude: _longitude,
+        latitude: _latitude,
+      }),
     })
-    .catch((error) => console.error("Error:", error));
+      .then((response) => response.json())
+      .then((data) => {
+        return data as WeatherData[];
+      });
 
-  if (!Array.isArray(data) || data.length === 0) {
-    return [];
+    return data;
+  } catch (error) {
+    console.error(error);
+    return null;
   }
-
-  if (data[0].id === -1) {
-    throw new Error(data?.[0]?.habitName ?? "Data is empty");
-  }
-
-  return data;
 };
-
-const HandleGetLocation = async (): Promise<Region> => {
-  // Request location permission
-  const requestLocationPermission = async () => {
-    let { status } = await Location.requestForegroundPermissionsAsync();
-    return status == "granted";
-  };
-
-  // Get current location
-  const getCurrentLocation = async (): Promise<Location.LocationObject> => {
-    return await Location.getCurrentPositionAsync({});
-  };
-
-  if (!(await requestLocationPermission())) {
-    throw new Error("Location permission denied");
-  }
-
-  const position = await getCurrentLocation();
-
-  if (!position) {
-    throw new Error("Failed to get location");
-  }
-
-  const weatherData = await HandleGetWeatherData3h(
-    position.coords.latitude.toString(),
-    position.coords.longitude.toString()
-  );
-
-  if (!weatherData) {
-    throw new Error("Failed to get weather data");
-  }
-
-  const region: Region = {
-    id: `${weatherData[0].city}, ${weatherData[0].district}`,
-    name: `${weatherData[0].city}, ${weatherData[0].district}`,
-    longitude: position.coords.longitude.toString(),
-    latitude: position.coords.latitude.toString(),
-  };
-
-  return region;
-};
-
 const HandleGetWeatherData3h = async (
-  _latitude: string,
-  _longitude: string
-): Promise<WeatherData[]> => {
-  const weatherData3h = await fetch(`${hostURL}/Weather/Get3hData`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ longitude: _longitude, latitude: _latitude }),
-  })
-    .then((response) => response.json())
-    .then((data) => {
-      return data;
+  _region: Region
+): Promise<WeatherData[] | null> => {
+  try {
+    const [city, district] = _region.name.split(", ");
+    const data = await fetch(`${hostURL}/Weather/Get3hData`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        longitude: "0",
+        latitude: "0",
+        cusloc: {
+          city: city,
+          district: district,
+        },
+      }),
     })
-    .catch((error) => {
-      throw new Error(error);
-    });
+      .then((response) => response.json())
+      .then((data) => {
+        return data as WeatherData[];
+      });
 
-  if (!weatherData3h) {
-    throw new Error("Weather data (3h) is empty");
+    return data;
+  } catch (error) {
+    console.error(error);
+    return null;
   }
-
-  return weatherData3h;
 };
-
 const HandleGetWeatherData12h = async (
-  _latitude: string,
-  _longitude: string
-): Promise<WeatherData[]> => {
-  const weatherData12h = await fetch(`${hostURL}/Weather/Get12hData`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ longitude: _longitude, latitude: _latitude }),
-  })
-    .then((response) => response.json())
-    .then((data) => {
-      return data;
+  _region: Region
+): Promise<WeatherData[] | null> => {
+  try {
+    const [city, district] = _region.name.split(", ");
+    const data = await fetch(`${hostURL}/Weather/Get12hData`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        longitude: "0",
+        latitude: "0",
+        cusloc: {
+          city: city,
+          district: district,
+        },
+      }),
     })
-    .catch((error) => {
-      throw new Error(error);
-    });
+      .then((response) => response.json())
+      .then((data) => {
+        return data;
+      });
 
-  if (!weatherData12h) {
-    throw new Error("Weather data (12h) is empty");
+    return data;
+  } catch (error) {
+    console.error(error);
+    return null;
   }
-
-  return weatherData12h;
 };
-
-const HandleGetDailySportSug = async (
+const HandleGetDailySug = async (
   _userID: string,
-  _latitude: string,
-  _longitude: string
-): Promise<DailySportSug[]> => {
-  const data = await fetch(`${hostURL}/Users/GetDailySportsSuggestion`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      userID: _userID,
-      longitude: _longitude,
-      latitude: _latitude,
-    }),
-  })
-    .then((response) => response.json())
-    .then((data) => {
-      return data as DailySportSug[];
+  _region: Region
+): Promise<DailySug | null> => {
+  try {
+    const [city, district] = _region.name.split(", ");
+    const data = await fetch(`${hostURL}/Users/GetDailySuggestion`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        userID: _userID,
+        cusloc: {
+          city: city,
+          district: district,
+        },
+      }),
     })
-    .catch((error) => {
-      throw new Error(error);
-    });
+      .then((response) => response.json())
+      .then((data) => {
+        return data as DailySug;
+      });
 
-  if (!Array.isArray(data) || data.length === 0) {
-    return [];
+    return data;
+  } catch (error) {
+    console.error(error);
+    return null;
   }
+};
+const HandleGetAllRegion = async (): Promise<RegionList | null> => {
+  try {
+    const data = await fetch(`${hostURL}/Users/GetAllRegion`, {
+      method: "GET",
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        return data as RegionList;
+      });
 
-  if (data[0].id === -1) {
-    throw new Error(data?.[0]?.sportName ?? "Daily sport suggestion is empty");
+    return data;
+  } catch (error) {
+    console.error(error);
+    return null;
   }
-
-  return data;
 };
 
 export default function TabLayout() {
   useEffect(() => {
     // Update current location and current time every minute
     const Update = async () => {
-      try {
-        console.log("Updating data......");
+      console.log("Updating data......");
 
-        let userID: string = "-1";
-        let user: User = {} as User;
-        let userSettings: UserSettings = {} as UserSettings;
-        let regions: Region[] = [];
-        let region: Region | null = null;
-        let weatherData3h: WeatherData[] = [];
-        let weatherData12h: WeatherData[] = [];
-        let dailySportSuggestions: DailySportSug[] = [];
+      await Promise.all([
+        updateRegion0(),
+        updateWeatherData_3h(),
+        updateWeatherData_12h(),
+        updateUser(),
+      ]);
 
-        // Get time
-        let time = new Date().toLocaleDateString();
-        console.log("Complete get time");
-
-        // Get regions from local storage
-        regions = JSON.parse((await AsyncStorage.getItem("regions")) || "[]");
-        console.log("Complete get regions from local storage");
-
-        // Get user id from local storage
-        userID = (await AsyncStorage.getItem("userID")) || "-1";
-        console.log("Complete get userID from local storage");
-
-        // Get current location
-        try {
-          region = await HandleGetLocation();
-          console.log("Complete get current location");
-        } catch (error) {
-          console.error("Failed to get current location: " + error);
-        }
-
-        // Get user data
-        try {
-          user = await HandleGetUser(userID);
-          console.log("Complete get user data");
-        } catch (error) {
-          console.error("Failed to get user data: " + error);
-        }
-
-        // Get user settings data
-        try {
-          userSettings = {
-            sport: await HandleGetUserSports(userID),
-            habit: await HandleGetUserHabits(userID),
-          };
-          console.log("Complete get user settings data");
-        } catch (error) {
-          console.error("Failed to get user settings data: " + error);
-        }
-
-        // Set regions[0] to current location
-        if (region) {
-          regions[0] = region;
-          await AsyncStorage.setItem("regions", JSON.stringify(regions));
-          console.log("Complete set regions[0] to current location");
-        } else {
-          console.log(
-            "Failed to set regions[0] to current location, use local storage location instead"
-          );
-        }
-
-        // Update weather data
-        try {
-          for (let i = 0; i < regions.length; i++) {
-            weatherData3h = await HandleGetWeatherData3h(
-              regions[i].latitude,
-              regions[i].longitude
-            );
-            weatherData12h = await HandleGetWeatherData12h(
-              regions[i].latitude,
-              regions[i].longitude
-            );
-          }
-          console.log("Complete update weather data");
-        } catch (error) {
-          console.error("Failed to update weather data: " + error);
-        }
-
-        // Update daily sport suggestion
-        try {
-          dailySportSuggestions = await HandleGetDailySportSug(
-            userID,
-            regions[0].latitude,
-            regions[0].longitude
-          );
-          console.log("Complete update daily sport suggestion");
-        } catch (error) {
-          console.error("Failed to update daily sport suggestion: " + error);
-        }
-
-        // Set store data
-        store.dispatch(setRegion(regions));
-        store.dispatch(updateRegion(regions[0].id));
-        store.dispatch(setUser(user));
-        store.dispatch(setUserSettings(userSettings));
-        store.dispatch(updateWeatherData3h(weatherData3h));
-        store.dispatch(updateWeatherData12h(weatherData12h));
-        store.dispatch(updateDailySportSug(dailySportSuggestions));
-        console.log("Complete set store data");
-
-        console.log(
-          "Data update completed! \n",
-          "time: ",
-          time,
-          "\n",
-          "regions: ",
-          store.getState().region,
-          "\n",
-          "weatherData: ",
-          store.getState().weatherData,
-          "\n",
-          "user: ",
-          store.getState().user,
-          "\n",
-          "userSettings: ",
-          store.getState().userSettings
-        );
-      } catch (error) {
-        console.error("Data update failed! " + error);
-      }
+      console.log(
+        "-----------------------------------------------------\n" +
+          `| ${new Date()} \t|` +
+          "\n" +
+          "----------------------------------------------------\n" +
+          "| Data update success! \t\t\t\t\t\t\t\t|" +
+          "\n" +
+          "----------------------------------------------------\n"
+      );
     };
-    Update();
-    store.dispatch(updateTimeInterval(0));
 
+    const init = async () => {
+      let regions: Region[] = JSON.parse(
+        (await AsyncStorage.getItem("regions")) || "[]"
+      );
+
+      store.dispatch(setRegion(regions));
+
+      // Set default region and time interval
+      store.dispatch(setSelectedRegion(regions[0]?.name ?? ""));
+      store.dispatch(setSelectedTimeInterval(0));
+    };
+
+    init();
+    Update();
     const interval = setInterval(async () => {
       await Update();
     }, 60000); // Time gap (ms)
@@ -720,18 +861,34 @@ export default function TabLayout() {
     <Provider store={store}>
       <Tabs
         screenOptions={{
-          tabBarActiveTintColor: Colors[colorScheme ?? "light"].tint,
+          tabBarActiveTintColor: "white", // 設置圖標為白色
+          tabBarInactiveTintColor: "white", // 未選中的圖標顏色
           headerShown: false,
+          tabBarStyle: styles.tabBar, // 應用自定義的樣式
         }}
       >
         <Tabs.Screen
+          name="menu"
+          options={{
+            title: "",
+            tabBarIcon: ({ color, focused }) => (
+              <TabBarIcon
+                name={focused ? "menu" : "menu-outline"}
+                color={color}
+                size={20} // 縮小圖標
+              />
+            ),
+          }}
+        />
+        <Tabs.Screen
           name="index"
           options={{
-            title: "Home",
+            title: "",
             tabBarIcon: ({ color, focused }) => (
               <TabBarIcon
                 name={focused ? "home" : "home-outline"}
                 color={color}
+                size={20} // 縮小圖標
               />
             ),
           }}
@@ -739,11 +896,12 @@ export default function TabLayout() {
         <Tabs.Screen
           name="setting"
           options={{
-            title: "Settings",
+            title: "",
             tabBarIcon: ({ color, focused }) => (
               <TabBarIcon
                 name={focused ? "settings-sharp" : "settings-outline"}
                 color={color}
+                size={20} // 縮小圖標
               />
             ),
           }}
@@ -752,3 +910,15 @@ export default function TabLayout() {
     </Provider>
   );
 }
+
+const styles = StyleSheet.create({
+  tabBar: {
+    backgroundColor: "rgba(0, 0, 0, 0.5)", // 黑色半透明背景
+    position: "absolute", // 讓背景浮動
+    height: "8%", // 調整高度以便縮小圖標居中
+    paddingHorizontal: 120,
+    paddingBottom: 30,
+    paddingTop: 10,
+    borderTopWidth: 0,
+  },
+});
