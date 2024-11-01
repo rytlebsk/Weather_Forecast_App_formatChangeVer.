@@ -172,7 +172,7 @@ def sports():
         if checkUserExits(id) == False:
             sport = Sport(-1,"Undefine User")
             sports.append(sport.to_dict())
-            response = make_response(jsonify(sports),200)
+            response = make_response(jsonify(sports),404)
             return response
         sql_query = """
         SELECT * FROM sports where sports.id in 
