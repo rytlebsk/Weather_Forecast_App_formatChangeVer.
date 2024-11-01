@@ -150,13 +150,13 @@ def habits():
         habbitIdList = data.get('habitIDs')
         if userID == None:
             result = {
-                "Stats": "Index Error. Please Follow Documentaion Instructions"
+                "Status": "Index Error. Please Follow Documentaion Instructions"
             }
             response = make_response(jsonify(result), 404)
             return response
         if checkUserExits(userID) == False:
             result = {
-                "Stats": "No user"
+                "Status": "No user"
             }
             response = make_response(jsonify(result), 404)
             return response
@@ -167,7 +167,7 @@ def habits():
                 "INSERT INTO usersAndHabits VALUES(?,?)", (userID, i))
         conn.commit()
         result = {
-            "Stats": "Update Successful !"
+            "Status": "Update Successful !"
         }
         response = make_response(jsonify(result), 201)
         return response
@@ -207,13 +207,13 @@ def sports():
         userID = data.get('userID')
         if userID == None:
             result = {
-                "Stats": "Index Error. Please Follow Documentaion Instructions"
+                "Status": "Index Error. Please Follow Documentaion Instructions"
             }
             response = make_response(jsonify(result), 404)
             return response
         if checkUserExits(userID) == False:
             result = {
-                "Stats": "No user"
+                "Status": "No user"
             }
             response = make_response(jsonify(result), 404)
             return response
@@ -225,7 +225,7 @@ def sports():
                 "INSERT INTO usersAndSports VALUES(?,?)", (userID, i))
         conn.commit()
         result = {
-            "Stats": "Update Successful !"
+            "Status": "Update Successful !"
         }
         response = make_response(jsonify(result), 201)
         return response
