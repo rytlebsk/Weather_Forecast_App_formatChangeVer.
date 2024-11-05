@@ -16,7 +16,7 @@ export default [
   },
   {
     rules: {
-      "react/react-in-jsx-scope": "off",
+      "react/react-in-jsx-scope": "on",
     },
   },
   pluginJs.configs.recommended,

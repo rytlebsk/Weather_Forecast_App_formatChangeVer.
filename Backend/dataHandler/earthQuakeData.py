@@ -73,5 +73,3 @@ def getEarthData(lon,lat,city):
             "nowLocationIntensity": AreaIntensity if AreaIntensity else "該地區未列入最大震度範圍"
         })
     return resultData
-
-#print(getEarthDataFCM())
