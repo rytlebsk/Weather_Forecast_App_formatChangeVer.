@@ -318,3 +318,14 @@ def getAllSportsOption():
 @userControl_blueprint.route('/GetAllRegion', methods=['GET'])
 def getAllRegion():
     return jsonify(b.GetBoroughCode())
+
+@userControl_blueprint.route('/GetStorageCity',methods=['GET'])
+def getStorageCity():
+    userID = request.args.get('ID')
+    cursor.execute("select city from users where ID =?",[userID])
+    data = cursor.fetchall()
+    if len(data) <=0:
+        return jsonify({"data": None})
+    if data[0][0] == "":
+        return jsonify({"data": None})
+    return jsonify({"data":data[0][0]})
