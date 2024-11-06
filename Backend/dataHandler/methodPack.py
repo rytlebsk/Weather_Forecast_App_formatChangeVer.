@@ -1,9 +1,5 @@
 from geopy.geocoders import Nominatim
 import geopy.geocoders,certifi,ssl,math
-import sqlite3
-DATABASE = 'data.sqlite'
-conn = sqlite3.connect(DATABASE,check_same_thread=False)
-cursor = conn.cursor()
 ctx = ssl.create_default_context(cafile=certifi.where())
 geopy.geocoders.options.default_ssl_context = ctx
 
@@ -19,15 +15,6 @@ def setLocate(latitude,longitude):
          "city":nowCity,
          "district":nowdistrict
     }
-
-def getStorageCity(userID):
-    cursor.execute("select city from users where ID =?",[userID])
-    data = cursor.fetchall()
-    if len(data) <=0:
-        return None
-    if data[0][0] == "":
-        return None
-    return data[0][0]
 
 # print(setLocate(10.375919347291584, 114.36556088669015))
 
