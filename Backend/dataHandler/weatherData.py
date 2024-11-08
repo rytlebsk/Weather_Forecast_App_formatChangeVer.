@@ -11,11 +11,21 @@ from redis.exceptions import ConnectionError
 import os
 
 # 經度、緯度、時間 lat,lon,time
-redis_host = os.getenv('REDIS_HOST', 'localhost')  # 默認為 localhost
+redis_read_host = os.getenv('REDIS_READ_HOST', 'localhost')  # 默認為 localhost
+redis_write_host = '35.221.142.225'  # 設定寫入的 Redis 主機 IP
+redis_port = 80  # 設定 Redis 寫入端口
+
+# 建立 Redis 讀取連線
 try:
-    r = redis.Redis(host=redis_host, port=6379, db=0)
+    r_read = redis.Redis(host=redis_read_host, port=6379, db=0)
 except ConnectionError as e:
-    print("Connect to Redis failed:", e)
+    print("Connect to Redis (read) failed:", e)
+
+# 建立 Redis 寫入連線
+try:
+    r_write = redis.Redis(host=redis_write_host, port=redis_port, db=0)
+except ConnectionError as e:
+    print("Connect to Redis (write) failed:", e)
 
 
 def getTime(t): return (t - timedelta(minutes=90)
@@ -42,7 +52,7 @@ def get3hData(lon, lat, cusloc):
     cache_key = f"Weather_Data{lon}_{lat}_{offsetTime[:10]}_3"
 
     try:
-        cached_data = r.get(cache_key)
+        cached_data = r_read.get(cache_key)
         if cached_data:
             print("cached")
             return json.loads(cached_data)
@@ -76,11 +86,11 @@ def get3hData(lon, lat, cusloc):
             "pm2.5": None
         })})
 
-    # Try to cache fresh data in Redis
+    # Try to cache fresh data in Redis (write to different instance)
     try:
-        r.setex(cache_key, 3600, json.dumps(resultElement))
+        r_write.setex(cache_key, 3600, json.dumps(resultElement))
     except ConnectionError:
-        print("Redis unavailable, skip caching.")
+        print("Redis unavailable for write, skip caching.")
 
     return resultElement
 
@@ -91,12 +101,12 @@ def get12hData(lon, lat, cusloc):
     # Create a unique key based on coordinates and date
     cache_key = f"Weather_Data{lon}_{lat}_{offsetTime[:10]}_12"
     try:
-        cached_data = r.get(cache_key)
+        cached_data = r_read.get(cache_key)
         if cached_data:
             print("cached")
             return json.loads(cached_data)
     except Exception as e:
-        print("Issue with Redis, skip caching.:", e)
+        print("Issue with Redis (read), skip caching.:", e)
     weatherData = requests.get(url('12h', loc["city"], loc["district"], offsetTime)).json()[
         "records"]["locations"][0]["location"][0]["weatherElement"]
     resultElement = []  # 初始化陣列
@@ -126,11 +136,13 @@ def get12hData(lon, lat, cusloc):
             "pm2.5":    None
         })  # 體感溫度以最大與最小取平均值,降雨量無較遠資料
     try:
-        r.setex(cache_key, 3600, json.dumps(resultElement))
-        print(r.get('test_key'))
+        r_write.setex(cache_key, 3600, json.dumps(resultElement))
+        print(r_write.get('test_key'))
     except Exception as e:
-        print("Issue with Redis, skip caching.:", e)
+        print("Issue with Redis (write), skip caching.:", e)
     return resultElement
+
+
 
 # 121.66248756678424121,25.06715187342581
 # 已知問題

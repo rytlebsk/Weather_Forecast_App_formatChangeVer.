@@ -19,4 +19,4 @@ EXPOSE 8000
 ENV FLASK_APP=app.py
 
 # Run the application
-CMD ["python3", "index.py"]
+CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "4", "index:app"]
