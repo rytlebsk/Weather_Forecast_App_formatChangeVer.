@@ -45,8 +45,8 @@ def url(ft, nowCity, nowdistrict, nowTime):
     return f"https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-D0047-0{city()[nowCity+ft]}?Authorization=CWA-3D385D45-EFD5-4BD3-9677-9100AD39A4A2&locationName={nowdistrict}&elementName=T,Wx,RH,WS,WD,AT,MaxAT,MinAT,{'PoP6h'if ft=='3h'else'PoP12h'},WeatherDescription&sort=time&timeFrom={nowTime}"
 
 
-def get3hData(lon, lat, cusloc):
-    loc = cusloc if cusloc else setLocate(lat, lon)  # 引入地理編碼
+def get3hData(cusloc):
+    loc = cusloc # 引入地理編碼
     offsetTime = getTime(datetime.now(pytz.timezone('Asia/Taipei')))  # 修正時間
     # Create a unique key based on coordinates and date
     cache_key = f"Weather_Data{lon}_{lat}_{offsetTime[:10]}_3"
@@ -95,8 +95,8 @@ def get3hData(lon, lat, cusloc):
     return resultElement
 
 
-def get12hData(lon, lat, cusloc):
-    loc = cusloc if cusloc else setLocate(lat, lon)  # 引入地理編碼
+def get12hData(cusloc):
+    loc = cusloc  # 引入地理編碼
     offsetTime = getTime(datetime.now(pytz.timezone('Asia/Taipei')))  # 修正時間
     # Create a unique key based on coordinates and date
     cache_key = f"Weather_Data{lon}_{lat}_{offsetTime[:10]}_12"

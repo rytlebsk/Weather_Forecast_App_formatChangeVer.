@@ -12,21 +12,17 @@ cursor = conn.cursor()
 def Get12hData():
     data = request.get_json()
     userID = data.get('userID')
-    pre_longtitud = data.get('longitude')
-    pre_latitude = data.get('latitude')
-    pre_cusloc = data.get('cusloc') if data.get('cusloc') != None else None
-    if pre_longtitud == None or pre_latitude == None:
+    pre_cusloc = data.get('cusloc')
+    if pre_cusloc == None:
         result = {
             "Stats" : "Index Error. Please Follow Documentaion Instructions"
             }
         response = make_response(jsonify(result),404)
         return response
-    longtitude = float(pre_longtitud)
-    latitude = float(pre_latitude)
-    a = dataHandler.weatherData.get12hData(longtitude,latitude,pre_cusloc)
+    a = dataHandler.weatherData.get12hData(pre_cusloc)
     if userID != None:
         counter = len(cursor.execute("Select * from users where id=?",[userID]).fetchall())
-        if pre_cusloc == None and counter > 0:
+        if counter > 0:
             cursor.execute("UPDATE users set city =? where id =?",(a[0]["city"],userID))
             print("Save Region Successfully")
             conn.commit()
@@ -35,21 +31,17 @@ def Get12hData():
 def Get3hData():
     data = request.get_json()
     userID = data.get('userID')
-    pre_longtitud = data.get('longitude')
-    pre_latitude = data.get('latitude')
-    pre_cusloc = data.get('cusloc') if data.get('cusloc') != None else None
-    if pre_longtitud == None or pre_latitude == None:
+    pre_cusloc = data.get('cusloc')
+    if pre_cusloc == None:
         result = {
             "Stats" : "Index Error. Please Follow Documentaion Instructions"
             }
         response = make_response(jsonify(result),404)
         return response
-    longtitude = float(data.get('longitude'))
-    latitude = float(data.get('latitude'))
-    a = dataHandler.weatherData.get3hData(longtitude,latitude,pre_cusloc)
+    a = dataHandler.weatherData.get3hData(pre_cusloc)
     if userID != None:
         counter = len(cursor.execute("Select * from users where id=?",[userID]).fetchall())
-        if pre_cusloc == None and counter > 0:
+        if counter > 0:
             cursor.execute("UPDATE users set city =? where id =?",(a[0]["city"],userID))
             print("Save Region Successfully")
             conn.commit()
