@@ -1,7 +1,8 @@
 from datetime import datetime, timedelta
 from .airData import getAirData
-from datetime import datetime
 from .methodPack import setLocate
+from .locationToAxis import transToAxis
+from datetime import datetime
 import requests
 import json
 import math
@@ -49,7 +50,8 @@ def get3hData(cusloc):
     loc = cusloc # 引入地理編碼
     offsetTime = getTime(datetime.now(pytz.timezone('Asia/Taipei')))  # 修正時間
     # Create a unique key based on coordinates and date
-    cache_key = f"Weather_Data{lon}_{lat}_{offsetTime[:10]}_3"
+    axis = transToAxis(cusloc)
+    cache_key = f"Weather_Data{axis["lon"]}_{axis["lat"]}_{offsetTime[:10]}_3"
 
     try:
         cached_data = r_read.get(cache_key)
@@ -64,7 +66,7 @@ def get3hData(cusloc):
     resultElement = []  # 初始化陣列
     noData = 1 if datetime.strptime(
         weatherData[0]["time"][0]["startTime"], "%Y-%m-%d %H:%M:%S").hour % 6 != 0 else 0
-    airData = getAirData(lon, lat)
+    airData = getAirData(axis["lon"], axis["lat"])
 
     for time in range(len(weatherData[0]["time"])):
         resultElement.append({**{
@@ -99,7 +101,8 @@ def get12hData(cusloc):
     loc = cusloc  # 引入地理編碼
     offsetTime = getTime(datetime.now(pytz.timezone('Asia/Taipei')))  # 修正時間
     # Create a unique key based on coordinates and date
-    cache_key = f"Weather_Data{lon}_{lat}_{offsetTime[:10]}_12"
+    axis = transToAxis(cusloc)
+    cache_key = f"Weather_Data{axis["lon"]}_{axis["lat"]}_{offsetTime[:10]}_12"
     try:
         cached_data = r_read.get(cache_key)
         if cached_data:
@@ -113,7 +116,7 @@ def get12hData(cusloc):
     dayOffset = 0 if datetime.strptime(
         weatherData[0]["time"][0]["startTime"], "%Y-%m-%d %H:%M:%S").hour < 18 else 1  # 調整數據為白天
     if dayOffset:
-        resultElement.append(get3hData(lon, lat, cusloc)[0])
+        resultElement.append(get3hData(axis["lon"], axis["lat"], cusloc)[0])
 
     for time in range(0, len(weatherData[0]["time"])-dayOffset, 2):
         rainRateDataNow = weatherData[0]["time"][time +
