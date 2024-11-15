@@ -259,7 +259,7 @@ def getDailySportsSuggestion():
     sportsData = cursor.fetchall()
     cursor.execute(sql_query2, [id])
     habitsData = cursor.fetchall()
-    nowWeatherData = dataHandler.weatherData.get12hData(0.1, 0.1, pre_cusloc)[
+    nowWeatherData = dataHandler.weatherData.get12hData(pre_cusloc)[
         0]
     handler = DailySuggestion(nowWeatherData)
     sportsSuggestions = handler.getSportsSuggestion()
