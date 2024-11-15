@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify, make_response
 import sqlite3
 from .Models import UserDataResult, Habit, Sport, SportsSuggestion, HabitsSuggestion, DailySuggestion
 import dataHandler.weatherData
+import dataHandler.locationData as l
 from flask_cors import CORS
 import dataHandler.boroughData as b
 
@@ -329,3 +330,10 @@ def getStorageCity():
     if data[0][0] == "":
         return jsonify({"data": None})
     return jsonify({"data":data[0][0]})
+
+@userControl_blueprint.route('/locationData',methods=['POST'])
+def locationData():
+    data = request.get_json()
+    pre_lon = data.get('longitude')
+    pre_lat = data.get('latitude')
+    return jsonify(l.getLocation(float(pre_lon),float(pre_lat)))
