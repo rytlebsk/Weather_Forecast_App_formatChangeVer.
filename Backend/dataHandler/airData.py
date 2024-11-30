@@ -31,7 +31,7 @@ def getAirData(lon, lat):
     except Exception as e:
         print(e)
         return {
-            "sitename": "fetch data error",
-            "aqi": "fetch data error",
-            "pm2.5": "fetch data error"
+            "sitename": None,
+            "aqi": None,
+            "pm2.5": None
         }
